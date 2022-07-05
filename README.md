@@ -12,4 +12,4 @@
 提供了一个后台页面以便编辑展示的标签
 
 页面地址：`/admin`
-[展示地址](http://www.hezhaoyin.com:2333/admin)
+[展示地址](http://www.hezhaoyin.com:2333/admin/)
