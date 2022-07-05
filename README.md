@@ -3,6 +3,7 @@
 > 提供了Dockerfile以便部署
 
 - [服务端](https://github.com/HeZhaoyin/HomePageServer)
+- [展示地址](http://www.hezhaoyin.com:2333/)
 - 账号：admin，密码：admin
 - 首页设计参考了[docker-flare](https://github.com/soulteary/docker-flare)
 
@@ -11,3 +12,4 @@
 提供了一个后台页面以便编辑展示的标签
 
 页面地址：`/admin`
+[展示地址](http://www.hezhaoyin.com:2333/admin)
