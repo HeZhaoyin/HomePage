@@ -146,44 +146,57 @@
     </el-table>
 
     <el-dialog v-model="isShowEditPanel" :title="editPanelTitle" width="80%">
-      <el-form v-if="editPanelType == 'App'" :model="editAppForm" label-width="120px">
-        <el-form-item label="名称">
+      <el-form
+        ref="refEditAppForm"
+        v-if="editPanelType == 'App'"
+        :rules="rulesEditAppForm"
+        :model="editAppForm"
+        label-width="120px"
+      >
+        <el-form-item label="名称" prop="name">
           <el-input v-model="editAppForm.name" />
         </el-form-item>
-        <el-form-item label="图标">
+        <el-form-item label="图标" prop="icon">
           <el-input @click="dialogVisible = true" v-model="editAppForm.iconType">
           </el-input>
-          <el-dialog
-            v-model="dialogVisible"
-            title="请选择图标"
-            width="80%"
-            :before-close="handleClose"
-          >
-            <div style="display: flex; flex-wrap: wrap">
-              <div
-                v-for="(name, index) in icons"
-                :index="index"
-                :key="index"
-                style="cursor: pointer; padding: 1rem"
-                :class="editAppForm.iconType === name ? 'red' : ''"
-                @click="handleIconSelect(name)"
-              >
-                <component :is="name" style="width: 1.5rem; height: 1.5rem"> </component>
-              </div>
-            </div>
-          </el-dialog>
         </el-form-item>
+        <el-dialog
+          v-model="dialogVisible"
+          title="请选择图标"
+          width="80%"
+          :before-close="handleClose"
+        >
+          <div style="display: flex; flex-wrap: wrap">
+            <div
+              v-for="(name, index) in icons"
+              :index="index"
+              :key="index"
+              style="cursor: pointer; padding: 1rem"
+              :class="editAppForm.iconType === name ? 'red' : ''"
+              @click="handleIconSelect(name)"
+            >
+              <component :is="name" style="width: 1.5rem; height: 1.5rem"> </component>
+            </div>
+          </div>
+        </el-dialog>
+
         <el-form-item label="图标预览">
           <el-icon :size="24">
             <component :is="editAppForm.iconType" />
           </el-icon>
         </el-form-item>
-        <el-form-item label="链接">
+        <el-form-item label="链接" prop="href">
           <el-input v-model="editAppForm.href" />
         </el-form-item>
-        <el-button size="small" type="primary" @click="handleEditConfirm">
-          保存
-        </el-button>
+        <el-form-item>
+          <el-button
+            size="small"
+            type="primary"
+            @click="handleEditConfirm(refEditAppForm)"
+          >
+            保存
+          </el-button>
+        </el-form-item>
       </el-form>
 
       <el-form
@@ -260,7 +273,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs, computed } from "vue";
+import { defineComponent, reactive, toRefs, computed, ref } from "vue";
 import {
   apiGetAllDataList,
   apiModifyApp,
@@ -286,6 +299,7 @@ import {
 } from "@/models/dataModel";
 import * as ElIcons from "@element-plus/icons-vue";
 import { ElNotification } from "element-plus";
+import type { FormRules, FormInstance } from "element-plus";
 
 export default defineComponent({
   name: "IndexManager",
@@ -311,6 +325,7 @@ export default defineComponent({
       editCategoryTypeForm: {} as ClientCategoryInfo,
       categoryTypeList: [] as Array<CategoryTypeListItem>,
       userGroupList: [] as Array<UserGroupItem>,
+      refEditAppForm: ref<FormInstance>(),
     });
 
     const getDataList = () => {
@@ -469,25 +484,42 @@ export default defineComponent({
       handleClose();
     };
 
-    const handleEditConfirm = () => {
+    const handleEditConfirm = async (formEl: FormInstance | undefined) => {
       const tempCategoryTypeData: ApiModifyCategoryInfo = {
         uuid: data.editCategoryTypeForm.uuid,
         categoryName: data.editCategoryTypeForm.categoryName,
       };
       switch (data.editPanelType) {
         case "App":
-          apiModifyApp(data.editAppForm).then((res) => {
-            console.log(res);
-            if (res.status == 1) {
-              getDataList();
-              ElNotification({
-                title: "成功",
-                message: "新建/修改APP数据成功",
-                type: "success",
+          if (!formEl) return;
+          await formEl.validate((valid, fields) => {
+            if (valid) {
+              apiModifyApp(data.editAppForm).then((res) => {
+                console.log(res);
+                if (res.status == 1) {
+                  getDataList();
+                  ElNotification({
+                    title: "成功",
+                    message: "新建/修改APP数据成功",
+                    type: "success",
+                  });
+                  data.isShowEditPanel = false;
+                }
               });
-              data.isShowEditPanel = false;
+            } else {
+              for (const key in fields) {
+                if (Object.prototype.hasOwnProperty.call(fields, key)) {
+                  const element = fields[key];
+                  ElNotification({
+                    title: "失败",
+                    message: element[0].message,
+                    type: "error",
+                  });
+                }
+              }
             }
           });
+
           break;
 
         case "Category":
@@ -591,6 +623,30 @@ export default defineComponent({
       }
     };
 
+    const rulesEditAppForm = reactive<FormRules>({
+      name: [
+        {
+          required: true,
+          message: "请输入名称",
+          trigger: "blur",
+        },
+      ],
+      icon: [
+        {
+          required: true,
+          message: "请输入或选择图标",
+          trigger: "blur",
+        },
+      ],
+      href: [
+        {
+          required: true,
+          message: "请输入正确的链接",
+          trigger: "blur",
+        },
+      ],
+    });
+
     return {
       ...toRefs(data),
       initData,
@@ -602,6 +658,7 @@ export default defineComponent({
       groupDataIDTogroupDataName,
       handleAppGroupDataChange,
       handleCategoryGroupDataChange,
+      rulesEditAppForm,
     };
   },
 });
